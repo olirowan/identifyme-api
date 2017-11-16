@@ -4,6 +4,8 @@ from flask import Flask
 from flask import jsonify
 from flask import request
 
+
+
 client = MongoClient("mongodb://192.168.0.39:27017")
 db = client.business
 
