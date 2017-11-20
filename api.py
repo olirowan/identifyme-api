@@ -23,6 +23,19 @@ def get_rating(number):
     return jsonify({'result': [review]})
 
 
+@app.route('/rating', methods=['GET'])
+
+def get_all_ratings():
+
+  output = []
+
+  for resturant in db.reviews.find():
+
+    resturant['_id'] = str(resturant['_id'])
+    output.append({'_id' : resturant['_id'], 'cuisine' : resturant['cuisine'], 'name' : resturant['name'], 'rating' : resturant['rating']})
+
+  return jsonify({'result' : output})
+
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+    app.run(host='0.0.0.0')
