@@ -16,10 +16,14 @@ mongo = PyMongo(app)
 @app.route('/rating/<int:number>/', methods=['GET'])
 
 def get_rating(number):
-    review = db.reviews.find_one({'rating': number})
-    review['_id'] = str(review['_id'])  # This ID needs to be converted to a string due to the JSON requirements.
 
-    return jsonify({'result': [review]})
+    if 0 <= number <= 5:
+        result = db.reviews.find_one({'rating': number})
+        result['_id'] = str(result['_id'])  # This ID needs to be converted to a string due to the JSON requirements.
+    else:
+        result = "You have not chosen a valid rating value."
+
+    return jsonify({'result': [result]})
 
 
 
@@ -28,14 +32,14 @@ def get_rating(number):
 
 def get_cuisine(cuisine):
 
-    output = []
+    result = []
     for resturant in db.reviews.find({'cuisine': cuisine}):
         resturant['_id'] = str(resturant['_id'])  # This ID needs to be converted to a string due to the JSON requirements.
 
-        output.append({'_id': resturant['_id'], 'cuisine': resturant['cuisine'], 'name': resturant['name'],
+        result.append({'_id': resturant['_id'], 'cuisine': resturant['cuisine'], 'name': resturant['name'],
                        'rating': resturant['rating']})
 
-    return jsonify({'result': [output]})
+    return jsonify({'result': [result]})
 
 
 
@@ -43,13 +47,13 @@ def get_cuisine(cuisine):
 @app.route('/rating', methods=['GET'])
 
 def get_all_ratings():
-    output = []
+    result = []
     for resturant in db.reviews.find():
         resturant['_id'] = str(resturant['_id'])
-        output.append({'_id': resturant['_id'], 'cuisine': resturant['cuisine'], 'name': resturant['name'],
+        result.append({'_id': resturant['_id'], 'cuisine': resturant['cuisine'], 'name': resturant['name'],
                        'rating': resturant['rating']})
 
-    return jsonify({'result': output})
+    return jsonify({'result': result})
 
 
 
@@ -57,19 +61,28 @@ def get_all_ratings():
 @app.route('/rating', methods=['POST'])
 
 def add_rating():
+    result = []
 
     cuisine = request.json['cuisine']
     name = request.json['name']
     rating = request.json['rating']
 
-    review_id = db.reviews.insert({'cuisine': cuisine, 'name': name, 'rating': rating})
+    if cuisine == "":
+        result.append("Please enter a style of cuisine. ")
+    elif name == "":
+        result.append("Please enter the restaurant name. ")
+    elif rating == "":
+        result.append("Please enter a rating.")
+    else:
 
-    new_review = db.reviews.find_one({'_id': review_id})
-    new_review['_id'] = str(new_review['_id'])
-    output = {'_id': new_review['_id'], 'cuisine': new_review['cuisine'], 'name': new_review['name'],
-              'rating': new_review['rating']}
+        review_id = db.reviews.insert({'cuisine': cuisine, 'name': name, 'rating': rating})
 
-    return jsonify({'result': output})
+        new_review = db.reviews.find_one({'_id': review_id})
+        new_review['_id'] = str(new_review['_id'])
+        result = {'_id': new_review['_id'], 'cuisine': new_review['cuisine'], 'name': new_review['name'],
+                  'rating': new_review['rating']}
+
+    return jsonify({'result': result})
 
 
 if __name__ == '__main__':
