@@ -3,9 +3,15 @@ from flask_pymongo import PyMongo
 from flask import Flask
 from flask import jsonify
 from flask import request
+import datetime
 
+# Point the API to the MongoDB service.
 client = MongoClient("mongodb://localhost:27017")
-db = "EmployeeData"
+
+# Set the database to be used.
+db = "IdentifyTest"
+
+# Set the collection to use.
 collection = "Employees"
 
 app = Flask(__name__)
@@ -26,10 +32,14 @@ def get_rating(idnumber):
 
 
 # A POST to the API that allows a user to add an entry to the DB.
-@app.route('/rating', methods=['POST'])
-def add_rating():
+@app.route('/identifier/<fresh_hash>', methods=['POST'])
+def check_authentication(fresh_hash):
 
     result = []
+
+    if fresh_hash == "":
+        print("no")
+
 
     cuisine = request.json['cuisine']
     name = request.json['name']
