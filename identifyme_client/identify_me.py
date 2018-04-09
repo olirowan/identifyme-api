@@ -40,7 +40,7 @@ def usermenu(face_library, face_cascade, webcam):
         identify_me(face_library, face_cascade, webcam)
 
     elif user_option == "quit" or user_option == "q":
-        sys.exit("\nClosing . . ")
+        sys.exit("\nClosing.\n")
 
     else:
         print("\nOption not supported.\n")
@@ -75,6 +75,7 @@ def learn_identity(face_library, face_cascade, webcam):
     # Loop until enough images have been captured.
     while count < capture_count:
 
+        # Read stream from webcam.
         (rval, im) = webcam.read()
 
         im = cv2.flip(im, 1, 0)
@@ -89,13 +90,14 @@ def learn_identity(face_library, face_cascade, webcam):
             face_i = faces[0]
             (x, y, w, h) = [v * size for v in face_i]
             face = gray[y:y + h, x:x + w]
+
             face_resize = cv2.resize(face, (frame_width, frame_height))
             pin = sorted([int(n[:n.find('.')]) for n in os.listdir(subject_path)
                           if n[0] != '.'] + [0])[-1] + 1
+
             cv2.imwrite('%s/%s.png' % (subject_path, pin), face_resize)
             cv2.rectangle(im, (x, y), (x + w, y + h), (0, 255, 0), 3)
-            cv2.putText(im, subject_identity, (x - 10, y - 10), cv2.FONT_HERSHEY_PLAIN,
-                        1, (0, 255, 0))
+            cv2.putText(im, subject_identity, (x - 10, y - 10), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0))
 
         time.sleep(0.38)
 
@@ -109,7 +111,7 @@ def learn_identity(face_library, face_cascade, webcam):
         if key == 27:
             break
 
-    # Inform user the process completed.
+    # At the end of the loop - inform user the process completed.
     # Return to usermenu.
     cv2.destroyAllWindows()
     print(str(count) + " images captured. Library saved to folder: " + subject_identity)
@@ -119,46 +121,63 @@ def learn_identity(face_library, face_cascade, webcam):
 # This function enables the camera and attmepts to identify individuals in the viewport.
 def identify_me(face_library, face_cascade, webcam):
 
+    # Create blank arrays and dictionaries in preparation.
     (images, lables, names, id) = ([], [], {}, 0)
+
+    # Obtain a list of subdirectories.
     for (subdirs, dirs, files) in os.walk(face_library):
+
+        # Assign the name of the directory to the ID to be used in the training model.
         for subdir in dirs:
             names[id] = subdir
             subjectpath = os.path.join(face_library, subdir)
+
+            # The ID will be used as the lable.
             for filename in os.listdir(subjectpath):
                 path = subjectpath + '/' + filename
                 lable = id
                 images.append(cv2.imread(path, 0))
                 lables.append(int(lable))
+
             id += 1
+
     (width, height) = (130, 100)
 
+    # The images and lables are assigned to a numpy array, to be fed into OpenCV.
     (images, lables) = [numpy.array(lis) for lis in [images, lables]]
 
-
+    # Train the face recogniser model using the images and the associated labels.
+    # The chosen computer vision recognition algorithm is LBPH.
     model = cv2.face.LBPHFaceRecognizer_create()
     model.train(images, lables)
 
+    # Start an indefinite loop of continuously attempting to recognise an individual in each frame.
     while True:
+
 
         (_, im) = webcam.read()
         gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+
         for (x, y, w, h) in faces:
+
             cv2.rectangle(im, (x, y), (x + w, y + h), (255, 0, 0), 2)
             face = gray[y:y + h, x:x + w]
             face_resize = cv2.resize(face, (width, height))
-            # Try to recognize the face
             prediction = model.predict(face_resize)
             cv2.rectangle(im, (x, y), (x + w, y + h), (0, 255, 0), 3)
 
-            if prediction[1] < 500:
-                cv2.putText(im, '%s - %.0f' % (names[prediction[0]], prediction[1]), (x - 10, y - 10),
-                            cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0))
+            if prediction[1] < 85:
+                cv2.putText(im, '%s - %.0f' % (names[prediction[0]], prediction[1]), (x - 10, y - 10), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0))
             else:
-                cv2.putText(im, 'not recognized', (x - 10, y - 10), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0))
+                cv2.putText(im, 'Unknown', (x - 10, y - 10), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255))
 
+        # Open a window to display the camera view.
+        # Display frames for 10ms.
         cv2.imshow('IdentifyMe', im)
         key = cv2.waitKey(10)
+
+        # Key 27 is ESC, allowing the user to return to the usermenu.
         if key == 27:
             cv2.destroyAllWindows()
             usermenu(face_library, face_cascade, webcam)
