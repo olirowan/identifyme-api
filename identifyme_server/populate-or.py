@@ -4,7 +4,7 @@ import hashlib
 
 
 client = MongoClient("mongodb://192.168.0.39:27017")
-db=client.identifytest
+db = client.identifytest
 
 # This script connects to the MongoDB service.
 # The first function will post a seclection of test data to a db named business
