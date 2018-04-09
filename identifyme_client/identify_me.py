@@ -3,22 +3,25 @@ import time
 import cv2
 import os
 import numpy
-
+import requests
 
 def main():
 
     # Define variables.
     # The variable 'webcam' can only be set once. See next comment.
     # OpenCV will attempt to re-assign the webcam whilst it is in use and fail.
+    current_location = ""
     face_library = 'face_library'
     face_cascade = cv2.CascadeClassifier('opencv_library/haarcascade_frontalface_default.xml')
     webcam = cv2.VideoCapture(0)
 
+    current_location_id = set_location()
+
     # Call the usermenu, for user to decide operation.
-    usermenu(face_library, face_cascade, webcam)
+    usermenu(face_library, face_cascade, webcam, current_location_id)
 
 
-def usermenu(face_library, face_cascade, webcam):
+def usermenu(face_library, face_cascade, webcam, current_location_id):
 
     # Self plug.
     print("\nIdentifyMe - olirowan")
@@ -37,7 +40,7 @@ def usermenu(face_library, face_cascade, webcam):
         learn_identity(face_library, face_cascade, webcam)
 
     elif user_option == "identify" or user_option == "i":
-        identify_me(face_library, face_cascade, webcam)
+        identify_me(face_library, face_cascade, webcam, current_location_id)
 
     elif user_option == "quit" or user_option == "q":
         sys.exit("\nClosing.\n")
@@ -46,6 +49,21 @@ def usermenu(face_library, face_cascade, webcam):
         print("\nOption not supported.\n")
         usermenu(face_library, face_cascade, webcam)
 
+
+def set_location():
+
+    server = '192.168.0.39:5000'
+    current_location = raw_input("\nPlease set current camera location: ")
+    response = requests.get('http://' + server + '/request/locations/' + current_location).json()
+
+    json_result = (response['result'])
+    for returns in json_result:
+        for item in returns:
+            current_location_id = (item['location_id'])
+
+    print(current_location_id)
+
+    return current_location_id
 
 # This function will create a folder of faces, associated with a name.
 def learn_identity(face_library, face_cascade, webcam):
@@ -119,7 +137,10 @@ def learn_identity(face_library, face_cascade, webcam):
 
 
 # This function enables the camera and attmepts to identify individuals in the viewport.
-def identify_me(face_library, face_cascade, webcam):
+def identify_me(face_library, face_cascade, webcam, current_location_id):
+
+
+    print(current_location_id)
 
     # Create blank arrays and dictionaries in preparation.
     (images, lables, names, id) = ([], [], {}, 0)
