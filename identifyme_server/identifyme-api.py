@@ -57,15 +57,15 @@ def get_employee_hash(hash):
     return jsonify({'result': [result]})
 
 
-@app.route('/request/auths/<person_id>/<location_id>')
+@app.route('/request/auths/<int:person_id>/<int:location_id>')
 def get_auth(person_id, location_id):
 
     result = []
-    for auth in db.auths.find({'person_id': person_id}):
+    for auth in db.auths.find({'person_id': person_id , 'location_id': location_id}):
         auth['_id'] = str(
             auth['_id'])  # This ID needs to be converted to a string due to the JSON requirements.
 
-        result.append({'_id': auth['_id'], 'person_id': auth['person_id'], 'location': auth['location_id'], 'is_authorised': auth['is_authorised']})
+        result.append({'_id': auth['_id'], 'person_id': auth['person_id'], 'location_id': auth['location_id'], 'is_authorised': auth['is_authorised']})
 
     return jsonify({'result': [result]})
 
