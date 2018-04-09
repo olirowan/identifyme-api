@@ -4,6 +4,7 @@ import cv2
 import os
 import numpy
 import requests
+import hashlib
 
 def main():
 
@@ -37,7 +38,7 @@ def usermenu(face_library, face_cascade, webcam, current_location_id):
     user_option = raw_input("\nOption choice: ")
 
     if user_option == "train" or user_option == "t":
-        learn_identity(face_library, face_cascade, webcam)
+        learn_identity(face_library, face_cascade, webcam, current_location_id)
 
     elif user_option == "identify" or user_option == "i":
         identify_me(face_library, face_cascade, webcam, current_location_id)
@@ -47,26 +48,10 @@ def usermenu(face_library, face_cascade, webcam, current_location_id):
 
     else:
         print("\nOption not supported.\n")
-        usermenu(face_library, face_cascade, webcam)
-
-
-def set_location():
-
-    server = '192.168.0.39:5000'
-    current_location = raw_input("\nPlease set current camera location: ")
-    response = requests.get('http://' + server + '/request/locations/' + current_location).json()
-
-    json_result = (response['result'])
-    for returns in json_result:
-        for item in returns:
-            current_location_id = (item['location_id'])
-
-    print(current_location_id)
-
-    return current_location_id
+        usermenu(face_library, face_cascade, webcam, current_location_id)
 
 # This function will create a folder of faces, associated with a name.
-def learn_identity(face_library, face_cascade, webcam):
+def learn_identity(face_library, face_cascade, webcam, current_location_id):
 
     # Request name of subject who will be captured by camera.
     subject_identity = raw_input("Enter subjects name: ")
@@ -133,14 +118,12 @@ def learn_identity(face_library, face_cascade, webcam):
     # Return to usermenu.
     cv2.destroyAllWindows()
     print(str(count) + " images captured. Library saved to folder: " + subject_identity)
-    usermenu(face_library, face_cascade, webcam)
+    usermenu(face_library, face_cascade, webcam, current_location_id)
 
 
 # This function enables the camera and attmepts to identify individuals in the viewport.
 def identify_me(face_library, face_cascade, webcam, current_location_id):
 
-
-    print(current_location_id)
 
     # Create blank arrays and dictionaries in preparation.
     (images, lables, names, id) = ([], [], {}, 0)
@@ -190,6 +173,16 @@ def identify_me(face_library, face_cascade, webcam, current_location_id):
 
             if prediction[1] < 85:
                 cv2.putText(im, '%s - %.0f' % (names[prediction[0]], prediction[1]), (x - 10, y - 10), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0))
+
+                person_hash = hashlib.md5((names[prediction[0]]).encode('utf-8'))
+                current_employee_id = get_identity(person_hash.hexdigest())
+
+                is_authed = get_auth(current_employee_id, current_location_id)
+                if is_authed == "yes":
+                    print("AUTHORISED")
+                elif is_authed == "no":
+                    print("UNAUTHORISED")
+
             else:
                 cv2.putText(im, 'Unknown', (x - 10, y - 10), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255))
 
@@ -201,7 +194,47 @@ def identify_me(face_library, face_cascade, webcam, current_location_id):
         # Key 27 is ESC, allowing the user to return to the usermenu.
         if key == 27:
             cv2.destroyAllWindows()
-            usermenu(face_library, face_cascade, webcam)
+            usermenu(face_library, face_cascade, webcam, current_location_id)
+
+
+def set_location():
+
+    server = '192.168.0.39:5000'
+    current_location = raw_input("\nPlease set current camera location: ")
+    response = requests.get('http://' + server + '/request/locations/' + current_location).json()
+
+    json_result = (response['result'])
+    for returns in json_result:
+        for item in returns:
+            current_location_id = (item['location_id'])
+
+            return current_location_id
+
+
+def get_identity(person_hash):
+
+    server = '192.168.0.39:5000'
+    response = requests.get('http://' + server + '/request/employees/hash/' + str(person_hash)).json()
+
+    json_result = (response['result'])
+    for returns in json_result:
+        for item in returns:
+            current_employee_id = (item['person_id'])
+
+            return current_employee_id
+
+
+def get_auth(current_employee_id, current_location_id):
+
+    server = '192.168.0.39:5000'
+    response = requests.get('http://' + server + '/request/auths/' + str(current_employee_id) + '/' + str(current_location_id)).json()
+
+    json_result = (response['result'])
+    for returns in json_result:
+        for item in returns:
+            is_authed = (item['is_authorised'])
+
+            return is_authed
 
 # Call main, start program.
 main()
